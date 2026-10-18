@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>🍉 合成大西瓜｜水果合成大挑戰</title>
+<style>
+:root{color-scheme:light;--ink:#594632;--brown:#9e7855;--cream:#fff9ef;--peach:#ffe8c7;--pink:#f7b6aa;--green:#7cae7d}*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:ui-rounded,"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;color:var(--ink)}body{background:radial-gradient(circle at 10% 15%,#fff8d9,transparent 38%),radial-gradient(circle at 85% 85%,#fce4d9,transparent 35%),#fff4e5;display:flex;justify-content:center;padding:14px 12px 26px}.app{width:min(100%,520px)}header{text-align:center;margin-bottom:10px}h1{margin:3px 0 4px;font-size:clamp(25px,6vw,35px);letter-spacing:2px}header p{margin:0;font-size:13px;color:#96775b}.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin:12px 0}.stat{background:#fffdf8;border:2px solid #f3dfc3;border-radius:16px;padding:8px 5px;text-align:center;box-shadow:0 4px 0 #eed9bc}.stat small{display:block;color:#92765d;font-size:12px}.stat strong{display:block;font-size:24px;font-variant-numeric:tabular-nums}.stat .next{font-size:26px;line-height:30px}.game-wrap{position:relative;border:5px solid #c99e73;border-radius:18px;background:#f7e8ce;overflow:hidden;box-shadow:0 7px 0 #b98b60;touch-action:none}.game-wrap canvas{display:block;width:100%;height:auto;aspect-ratio:360/500;touch-action:none;cursor:crosshair}.hint{text-align:center;margin:13px 0 11px;color:#84694e;font-size:13px}.controls{display:flex;gap:10px}.controls button,.modal button{font:inherit;font-weight:800;border:0;border-radius:13px;min-height:46px;padding:10px 16px;cursor:pointer;transition:transform .12s,filter .12s}.controls button:active,.modal button:active{transform:translateY(2px)}.controls button:focus-visible,.modal button:focus-visible{outline:3px solid #4b91c5;outline-offset:3px}.controls button{flex:1;background:#fffdf7;color:#805b3b;border:2px solid #e8cda8;box-shadow:0 3px 0 #d9b78f}.controls button.primary,.modal button.primary{background:#79ad7c;color:white;box-shadow:0 3px 0 #548a58}.modal-backdrop{position:absolute;inset:0;background:#46332175;display:flex;align-items:center;justify-content:center;padding:18px;z-index:4}.modal-backdrop[hidden]{display:none}.modal{background:#fffdf7;border:3px solid #f0d6b6;border-radius:22px;box-shadow:0 12px 32px #392a2433;padding:22px 18px;width:min(100%,320px);text-align:center}.modal h2{margin:0 0 9px;font-size:25px}.modal p{font-size:15px;line-height:1.7;margin:6px 0 15px}.modal .actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.modal button{background:#f4e4d0;color:#745237;min-width:104px}.footer{text-align:center;margin:15px 0 0;color:#9c7e64;font-size:12px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:380px){body{padding:7px 7px 18px}.stats{gap:5px;margin:8px 0}.stat{padding:5px 2px}.stat strong{font-size:20px}.hint{font-size:12px;margin:10px 0}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="app">
+<header><h1>🍉 合成大西瓜</h1><p>水果碰碰樂・挑戰你的最高分！</p></header>
+<section class="stats" aria-label="遊戲資訊"><div class="stat"><small>目前分數</small><strong id="score">0</strong></div><div class="stat"><small>最高分</small><strong id="best">0</strong></div><div class="stat"><small>下一顆</small><strong class="next" id="next" aria-label="下一顆水果">🍓</strong></div></section>
+<div class="game-wrap" id="gameWrap"><canvas id="game" width="360" height="500" aria-label="合成大西瓜遊戲區，滑鼠點擊或觸控放開即可投放水果"></canvas><div class="modal-backdrop" id="overlay" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><h2 id="modalTitle">暫停遊戲</h2><p id="modalText">休息一下，隨時可以繼續！</p><div class="actions" id="modalActions"></div></div></div></div>
+<p class="hint" id="hint">移動滑鼠選位置並點擊；手機拖曳後放開投放 🍒</p>
+<div class="controls"><button id="pauseBtn" class="primary" type="button">⏸ 暫停遊戲</button><button id="restartBtn" type="button">↻ 重新開始</button></div>
+<p class="footer">同種水果碰撞就會合成更大的水果！<br>堆積超過紅線 3 秒就會結束遊戲。</p>
+<div class="sr-only" id="announcer" aria-live="polite"></div>
+</main>
+<script>
+(()=>{'use strict';
+const W=360,H=500,TOP=72,GRAVITY=1250,STEP=1/120;
+const FRUITS=[
+{name:'櫻桃',emoji:'🍒',r:12,color:'#ec6776',leaf:'#659c5e',points:0},
+{name:'草莓',emoji:'🍓',r:16,color:'#f1797a',leaf:'#679f5e',points:2},
+{name:'葡萄',emoji:'🍇',r:20,color:'#b38bc8',leaf:'#6da466',points:4},
+{name:'橘子',emoji:'🍊',r:24,color:'#f6aa59',leaf:'#66a36b',points:8},
+{name:'檸檬',emoji:'🍋',r:29,color:'#f2d76b',leaf:'#7aa960',points:16},
+{name:'蘋果',emoji:'🍎',r:35,color:'#e96f69',leaf:'#6b9d59',points:32},
+{name:'梨子',emoji:'🍐',r:41,color:'#b6d577',leaf:'#639a5d',points:64},
+{name:'桃子',emoji:'🍑',r:48,color:'#f5a0a1',leaf:'#72a365',points:128},
+{name:'鳳梨',emoji:'🍍',r:55,color:'#e8bf58',leaf:'#6fa76b',points:256},
+{name:'哈密瓜',emoji:'🍈',r:63,color:'#a6cc8b',leaf:'#63975e',points:512},
+{name:'西瓜',emoji:'🍉',r:72,color:'#74b77b',leaf:'#478955',points:1024}
+];
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),wrap=document.getElementById('gameWrap');
+const $=id=>document.getElementById(id);let bodies=[],particles=[],popups=[],score=0,best=0,current=0,next=0,aim=W/2,dropCooldown=0,overflowTime=0,gameOver=false,paused=false,dialog='',last=0,acc=0,seq=0,dragging=false;
+try{best=Math.max(0,Number(localStorage.getItem('suika-best-v1'))||0)}catch(e){}$('best').textContent=best;
+function rand(){return Math.floor(Math.random()*5)}
+function reset(){bodies=[];particles=[];popups=[];score=0;current=rand();next=rand();aim=W/2;dropCooldown=0;overflowTime=0;gameOver=false;paused=false;acc=0;updateHud();hideModal();$('pauseBtn').textContent='⏸ 暫停遊戲';$('hint').textContent='移動滑鼠選位置並點擊；手機拖曳後放開投放 🍒'}
+function updateHud(){$('score').textContent=score;$('best').textContent=best;$('next').textContent=FRUITS[next].emoji;$('next').setAttribute('aria-label','下一顆：'+FRUITS[next].name)}
+function createBody(x,y,level,vx=0,vy=0){const f=FRUITS[level];return{id:++seq,x,y,vx,vy,r:f.r,level,mass:Math.pow(f.r/12,2),angle:0,spin:0,age:0,mergeLock:0,scale:.72}}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function drop(){if(paused||gameOver||dialog||dropCooldown>0)return;const r=FRUITS[current].r;const x=clamp(aim,r+2,W-r-2);bodies.push(createBody(x,32,current));current=next;next=rand();dropCooldown=.42;updateHud()}
+function addScore(v){score+=v;if(score>best){best=score;try{localStorage.setItem('suika-best-v1',String(best))}catch(e){}}updateHud()}
+function burst(x,y,color,value){for(let i=0;i<13;i++){let a=Math.random()*Math.PI*2,s=45+Math.random()*135;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-55,life:.55,max:.55,color,r:2+Math.random()*3})}popups.push({x,y,text:'+'+value,life:.85})}
+function resolveWalls(b){let r=b.r;if(b.x-r<0){b.x=r;b.vx=Math.abs(b.vx)*.25;b.spin*=.75}if(b.x+r>W){b.x=W-r;b.vx=-Math.abs(b.vx)*.25;b.spin*=.75}if(b.y+r>H){b.y=H-r;if(b.vy>0)b.vy*=-.16;b.vx*=.965;b.spin=b.vx/r*.5}if(b.y-r<0){b.y=r;if(b.vy<0)b.vy=0}}
+function collide(a,b){let dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy,rr=a.r+b.r;if(d2>=rr*rr)return false;let d=Math.sqrt(d2);if(d<.0001){dx=.001;dy=-.001;d=Math.hypot(dx,dy)}let nx=dx/d,ny=dy/d,invA=1/a.mass,invB=1/b.mass,inv=invA+invB,overlap=rr-d;
+const correction=Math.max(overlap-.08,0)/inv*.78;a.x-=nx*correction*invA;b.x+=nx*correction*invB;a.y-=ny*correction*invA;b.y+=ny*correction*invB;
+let rvx=b.vx-a.vx,rvy=b.vy-a.vy,vn=rvx*nx+rvy*ny;
+if(vn<0){let j=-(1+.12)*vn/inv,ix=j*nx,iy=j*ny;a.vx-=ix*invA;a.vy-=iy*invA;b.vx+=ix*invB;b.vy+=iy*invB;
+let tx=-ny,ty=nx,vt=rvx*tx+rvy*ty,jt=clamp(-vt/inv,-j*.32,j*.32);a.vx-=jt*tx*invA;a.vy-=jt*ty*invA;b.vx+=jt*tx*invB;b.vy+=jt*ty*invB;a.spin-=jt*invA/a.r*1.5;b.spin+=jt*invB/b.r*1.5}
+return true}
+function physics(dt){dropCooldown=Math.max(0,dropCooldown-dt);for(const b of bodies){b.age+=dt;b.mergeLock=Math.max(0,b.mergeLock-dt);b.scale=Math.min(1,b.scale+dt*5);b.vy+=GRAVITY*dt;b.vx*=Math.exp(-.18*dt);b.spin*=Math.exp(-2*dt);b.x+=b.vx*dt;b.y+=b.vy*dt;b.angle+=b.spin*dt;resolveWalls(b)}
+// Iterative impulse + positional correction for stable stacks.
+let contacts=[];for(let k=0;k<5;k++){for(let i=0;i<bodies.length;i++)for(let j=i+1;j<bodies.length;j++){let a=bodies[i],b=bodies[j];if(collide(a,b)&&k===0)contacts.push([a,b])}for(const b of bodies)resolveWalls(b)}
+// Resolve merges after all collision iterations; each fruit can merge only once per tick.
+let used=new Set(),merges=[];for(const [a,b] of contacts){if(a.level===b.level&&!used.has(a.id)&&!used.has(b.id)&&a.mergeLock<=0&&b.mergeLock<=0){used.add(a.id);used.add(b.id);merges.push([a,b])}}
+if(merges.length){bodies=bodies.filter(b=>!used.has(b.id));for(const [a,b] of merges){const lev=a.level+1,x=(a.x*a.mass+b.x*b.mass)/(a.mass+b.mass),y=(a.y*a.mass+b.y*b.mass)/(a.mass+b.mass),points=lev<FRUITS.length?FRUITS[lev].points:2048;addScore(points);burst(x,y,FRUITS[a.level].color,points);if(lev<FRUITS.length){const n=createBody(clamp(x,FRUITS[lev].r,W-FRUITS[lev].r),clamp(y,FRUITS[lev].r,H-FRUITS[lev].r),lev,(a.vx+b.vx)*.35,(a.vy+b.vy)*.2-75);n.mergeLock=.22;bodies.push(n)}if(lev===10)$('announcer').textContent='恭喜合成大西瓜！'}}
+// Only settled fruit count toward overflow; falling fruit receive a grace period.
+let overflowing=bodies.some(b=>b.age>1.2&&b.y-b.r<TOP&&Math.hypot(b.vx,b.vy)<90);overflowTime=overflowing?overflowTime+dt:Math.max(0,overflowTime-dt*1.7);if(overflowTime>=3){gameOver=true;showModal('結束遊戲','本次得分：'+score+' 分\n最高紀錄：'+best+' 分',[['🍉 再玩一次',()=>reset(),true]])}
+}
+function updateEffects(dt){particles=particles.filter(p=>p.life>0);for(const p of particles){p.life-=dt;p.vy+=240*dt;p.x+=p.vx*dt;p.y+=p.vy*dt}popups=popups.filter(p=>p.life>0);for(const p of popups){p.life-=dt;p.y-=35*dt}}
+function roundedRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
+function fruitDrawing(b,alpha=1){const f=FRUITS[b.level],r=b.r;ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.angle);ctx.scale(b.scale||1,b.scale||1);ctx.globalAlpha=alpha;ctx.fillStyle='#00000013';ctx.beginPath();ctx.ellipse(2,3,r,r*.96,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=f.color;ctx.strokeStyle='#fff9e8';ctx.lineWidth=2.2;ctx.beginPath();ctx.arc(0,0,r-1,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#ffffff45';ctx.beginPath();ctx.ellipse(-r*.3,-r*.35,r*.22,r*.13,-.7,0,Math.PI*2);ctx.fill();if(b.level===10){ctx.strokeStyle='#3c9b61';ctx.lineWidth=3;for(let x=-r*.65;x<=r*.65;x+=r*.45){ctx.beginPath();ctx.moveTo(x,-Math.sqrt(Math.max(0,r*r-x*x))*.75);ctx.quadraticCurveTo(x+r*.18,0,x,Math.sqrt(Math.max(0,r*r-x*x))*.75);ctx.stroke()}}else if(b.level===8){ctx.strokeStyle='#c99842';ctx.lineWidth=1.6;for(let y=-r*.6;y<r*.7;y+=14){ctx.beginPath();ctx.moveTo(-r*.65,y);ctx.lineTo(r*.65,y+10);ctx.stroke()}}else if(b.level===2){for(let i=0;i<5;i++){let a=i*Math.PI*2/5;ctx.fillStyle='#d9b8eb';ctx.beginPath();ctx.arc(Math.cos(a)*r*.5,Math.sin(a)*r*.5,3,0,Math.PI*2);ctx.fill()}}
+ctx.save();ctx.rotate(-b.angle*.35);ctx.fillStyle=f.leaf;ctx.beginPath();ctx.ellipse(r*.09,-r*.91,Math.max(4,r*.18),Math.max(2,r*.09),-.6,0,Math.PI*2);ctx.fill();ctx.restore();let eye=Math.max(1.5,r*.075);ctx.fillStyle='#5b4a40';ctx.beginPath();ctx.arc(-r*.23,-r*.06,eye,0,Math.PI*2);ctx.arc(r*.23,-r*.06,eye,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#7b5650';ctx.lineWidth=Math.max(1,r*.045);ctx.lineCap='round';ctx.beginPath();ctx.arc(0,r*.11,r*.13,.13,Math.PI-.13);ctx.stroke();if(r>20){ctx.fillStyle='#ee9c9d88';ctx.beginPath();ctx.arc(-r*.42,r*.13,r*.09,0,Math.PI*2);ctx.arc(r*.42,r*.13,r*.09,0,Math.PI*2);ctx.fill()}ctx.restore()}
+function draw(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#f9ead1';ctx.fillRect(0,0,W,H);ctx.fillStyle='#f2ddbd';ctx.fillRect(0,H-10,W,10);ctx.save();ctx.setLineDash([8,7]);ctx.strokeStyle=overflowTime>0?'#e35e62':'#dc8b82';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,TOP);ctx.lineTo(W,TOP);ctx.stroke();ctx.restore();ctx.font='bold 11px system-ui';ctx.fillStyle='#bc7069';ctx.textAlign='right';ctx.fillText('危險線',W-8,TOP-7);
+for(const b of bodies)fruitDrawing(b);
+if(!gameOver&&!paused&&!dialog&&dropCooldown<=0){const r=FRUITS[current].r,x=clamp(aim,r+2,W-r-2);ctx.save();ctx.setLineDash([4,7]);ctx.strokeStyle='#bd9e79';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.restore();fruitDrawing({x,y:31,r,level:current,angle:0,scale:1},.75)}
+for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;ctx.font='bold 19px system-ui';ctx.textAlign='center';for(const p of popups){ctx.globalAlpha=Math.max(0,p.life/.85);ctx.fillStyle='#7a5b3d';ctx.fillText(p.text,p.x,p.y)}ctx.globalAlpha=1;
+if(overflowTime>0){ctx.fillStyle='#dc6764';ctx.fillRect(0,0,W*clamp(overflowTime/3,0,1),5)}}
+function frame(t){if(!last)last=t;let delta=Math.min((t-last)/1000,.05);last=t;if(!paused&&!gameOver&&!dialog){acc+=delta;let count=0;while(acc>=STEP&&count<7){physics(STEP);updateEffects(STEP);acc-=STEP;count++}}draw();requestAnimationFrame(frame)}
+function showModal(title,desc,buttons){dialog=title;$('modalTitle').textContent=title;$('modalText').textContent=desc;$('modalText').style.whiteSpace='pre-line';const actions=$('modalActions');actions.replaceChildren();for(const [label,fn,primary] of buttons){const btn=document.createElement('button');btn.textContent=label;if(primary)btn.className='primary';btn.type='button';btn.addEventListener('click',fn);actions.appendChild(btn)}$('overlay').hidden=false;actions.querySelector('button')?.focus()}
+function hideModal(){dialog='';$('overlay').hidden=true}
+function togglePause(){if(gameOver)return;if(dialog==='重新開始？')return;if(paused){paused=false;hideModal();$('pauseBtn').textContent='⏸ 暫停遊戲'}else{paused=true;$('pauseBtn').textContent='▶ 繼續遊戲';showModal('暫停遊戲','休息一下，隨時可以繼續！',[['▶ 繼續遊戲',togglePause,true],['↻ 重新開始',confirmRestart,false]])}}
+function confirmRestart(){if(gameOver){reset();return}const wasPaused=paused;paused=true;showModal('重新開始？','目前分數會清空，但最高分會保留。',[['取消',()=>{hideModal();paused=wasPaused;$('pauseBtn').textContent=paused?'▶ 繼續遊戲':'⏸ 暫停遊戲';if(paused)showModal('暫停遊戲','休息一下，隨時可以繼續！',[['▶ 繼續遊戲',togglePause,true],['↻ 重新開始',confirmRestart,false]])},false],['確認重玩',reset,true]])}
+$('pauseBtn').addEventListener('click',togglePause);$('restartBtn').addEventListener('click',confirmRestart);
+function pointerX(ev){const rect=canvas.getBoundingClientRect();return clamp((ev.clientX-rect.left)/rect.width*W,0,W)}
+canvas.addEventListener('pointermove',ev=>{if(!paused&&!dialog){aim=pointerX(ev)}});
+canvas.addEventListener('pointerdown',ev=>{if(paused||dialog||gameOver)return;dragging=true;aim=pointerX(ev);try{canvas.setPointerCapture(ev.pointerId)}catch(e){}ev.preventDefault()});
+canvas.addEventListener('pointerup',ev=>{if(!dragging)return;dragging=false;aim=pointerX(ev);drop();ev.preventDefault()});
+canvas.addEventListener('pointercancel',()=>dragging=false);
+window.addEventListener('keydown',ev=>{if(ev.code==='Space'&&document.activeElement===document.body){ev.preventDefault();drop()}if(ev.key==='Escape'&&!gameOver){if(dialog==='重新開始？')return;togglePause()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!paused&&!gameOver&&!dialog)togglePause()});
+reset();requestAnimationFrame(frame);
+// Public read-only diagnostics for smoke tests; no external dependency.
+window.__suikaDiagnostics=()=>({score,best,fruitCount:bodies.length,paused,gameOver,current,next,canvasWidth:W,canvasHeight:H});
+})();
+</script>
+</body></html>
